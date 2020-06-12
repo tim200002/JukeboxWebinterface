@@ -1,0 +1,28 @@
+h2{
+    font-size: 1.3em;
+    font-weight: bold;
+    margin-top: 0;
+}
+
+h3{
+    font-size: 1.0em;
+    font-weight: bold;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+
+.inlineDiv{
+    display: inline-block;
+    vertical-align: top;
+    padding-right: 40px;
+}
+
+.playlistImage{
+    display: inline-block;
+    padding-right: 15px;
+}
+
+.playlistItem{
+    display: inline-block;
+    vertical-align: top;
+}

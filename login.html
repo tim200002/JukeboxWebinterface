@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+    </head>
+    <body>
+        <h1>Please Enter the Party Id of the Party you want to Connect</h1>
+         PartyId: <input type="text" id="partyIdInput" name="lname">
+        <button type="button" id="connect" , onclick="LogIn()">Login</button><br><br>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        function LogIn(){
+            var partyId = document.getElementById("partyIdInput").value
+            const config={
+                        params:{
+                            partyId: partyId
+                        }
+                    }
+            //Check if Party Exists
+            axios.get('http://localhost:8080/webSDK/validate',config).then(function (response){
+                        console.log(response.data)
+                        window.location.href = `http://localhost:80/nowPlaying?partyId=${response.data._id}&name=${response.data.name}&albumArt=${response.data.playlist[0].albumArt}`;
+                        //Party Exist Call new Screen
+                    })
+                    .catch(err=>{
+                        console.log("Party Doesnt Exist")
+                        console.log(err.message)
+                    }
+                    )
+        }
+    </script>
+    </body>
+</html>

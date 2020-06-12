@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Spotify Web Playback SDK Quick Start Tutorial</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+    <h1>Tims Party</h1>
+    PartyId: <input type="text" id="partyId" name="lname">
+    <button type="button" id="connect" , onclick="connect()">connect to Websocket</button><br><br>
+    <button type="button" id="playPauseButton" onclick="toogle()">Play/Pause</button> <br><br>
+    <button type="button" id="playPauseButton" onclick="start()">Start</button> <br><br>
+    
+    
+    <p id="partyIdParagraph">To Join this Party please enter the Party Id: partyId</p>
+    <div id="nowPlayingDiv", class="inlineDiv">
+        <h2 id="currentSongTextField">Song: </h2>
+        <img src="https://www.w3schools.com/images/w3schools_green.jpg" id="nowPlayingImage">
+    </div>
+    <div id="playlistDiv" class="inlineDiv">
+        Playlist:
+        <ul style="list-style: none;" id="playlistList">
+        </ul>
+
+    </div>
+
+
+    <script src="https://sdk.scdn.co/spotify-player.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <script>
+        var player
+        var socket = io.connect('http://localhost:8080/webapp')
+
+        function makePlaylist(playlist){
+            var list = document.getElementById("playlistList")
+            list.innerHTML=""
+            for(var i=0; i<playlist.length;++i){
+                var item=document.createElement("li");
+                
+                item.innerHTML = 
+                `<img src=${playlist[i].albumArt} class=\"playlistImage\""">`+
+                "<div class=\"playlistItem\">"+
+                    `<h3>${playlist[i].title}</h3>`+
+                        playlist[i].artist+
+                "</div>"
+                
+                list.appendChild(item)
+            }
+
+            
+        }
+
+        //When song changes -> new list of all Songs to construct playlist.
+        socket.on("update",(data)=>{
+            console.log("update")
+           makePlaylist(data.queue.slice(1))
+        })
+
+        onSpotifyWebPlaybackSDKReady = () => { console.log("Web API Ready") }
+        function connectToSpotifyApi(partyId) {
+             const player = new Spotify.Player({
+                name: 'Jukebox',
+                getOAuthToken: cb => { 
+                    console.log("get token")
+                    //Make API Call
+                    const config={
+                        params:{
+                            partyId: partyId
+                        }
+                    }
+                    axios.get('http://localhost:8080/party/accessToken',config).then(function (response){
+                        console.log(response.data.accessToken)
+                        cb(response.data.accessToken)
+                    })
+                    .catch(err=>{
+                        console.log(err.message)
+                    }
+                    )
+                }
+            });
+
+            // Error handling
+            player.addListener('initialization_error', ({ message }) => { console.error(message); });
+            player.addListener('authentication_error', ({ message }) => { console.error(message); });
+            player.addListener('account_error', ({ message }) => { console.error(message); });
+            player.addListener('playback_error', ({ message }) => { console.error(message); });
+
+
+
+            // Connect to the player!
+            player.connect();
+            return player
+        };
+
+
+        function connect() {
+            if(player) {
+                console.log("Disconnenctig curren player")
+
+                player.disconnect()
+            }
+            const partyId = document.getElementById('partyId').value
+            console.log("Hello")
+            
+            player = connectToSpotifyApi(partyId)
+            // Playback status updates
+            player.addListener('player_state_changed', state => {
+                console.log(state.track_window.current_track.name)
+                document.getElementById("currentSongTextField").innerHTML = "Song: " + state.track_window.current_track.name
+                document.getElementById("nowPlayingImage").src=state.track_window.current_track.album.images[0].url
+                socket.emit('player_state_changed', {position: state.position, duration: state.duration, paused: state.paused, song: state.track_window.current_track.id, partyId: partyId})
+                console.log(state); 
+            
+            });
+
+            // Ready
+            player.addListener('ready', ({ device_id }) => {
+
+                console.log('Ready with Device ID', device_id);
+                socket.emit("device_id", {device_id: device_id, partyId: partyId})
+            });
+
+            // Not Ready
+            player.addListener('not_ready', ({ device_id }) => {
+                console.log('Device ID has gone offline', device_id);
+            });
+        }
+
+        function toogle(){
+            player.togglePlay()
+        }
+
+    </script>
+</body>
+
+</html>
